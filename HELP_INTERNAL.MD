@@ -153,6 +153,20 @@ Listening on 0.0.0.0:25565
 
 If the bad log appears, rebuild/push the GHCR image from GitHub Actions and force Wings/Pterodactyl to pull the fresh `ghcr.io/sta-cloud-dev/prx-mc:latest` image.
 
+For Pterodactyl, prefer this image tag after the fixed build:
+
+```text
+ghcr.io/sta-cloud-dev/prx-mc:pterodactyl
+```
+
+GitHub Actions also pushes a commit-specific tag for cache-busting/debugging:
+
+```text
+ghcr.io/sta-cloud-dev/prx-mc:sha-<commit>
+```
+
+If `latest` still runs the old entrypoint on a Wings node, switch the server image to `pterodactyl` or the newest `sha-...` tag from the successful build.
+
 ## Package visibility checklist
 
 In GitHub:

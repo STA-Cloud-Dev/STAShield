@@ -58,16 +58,22 @@ jobs:
 
       - name: Build Docker image
         run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
           docker build \
             --label org.opencontainers.image.title=STAShield \
             --label org.opencontainers.image.source=https://github.com/STA-Cloud-Dev/STAShield \
             --label org.opencontainers.image.visibility=private \
             -t "${IMAGE}:latest" \
+            -t "${IMAGE}:pterodactyl" \
             -t "${IMAGE}:${{ inputs.version }}" \
+            -t "${IMAGE}:sha-${SHORT_SHA}" \
             .
 
       - name: Push Docker image
         if: ${{ inputs.push_image }}
         run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
           docker push "${IMAGE}:latest"
+          docker push "${IMAGE}:pterodactyl"
           docker push "${IMAGE}:${{ inputs.version }}"
+          docker push "${IMAGE}:sha-${SHORT_SHA}"

@@ -13,6 +13,7 @@
     "pid_limit"
   ],
   "docker_images": {
+    "Java 25 - STA Cloud Pterodactyl": "ghcr.io/sta-cloud-dev/prx-mc:pterodactyl",
     "Java 25 - STA Cloud latest": "ghcr.io/sta-cloud-dev/prx-mc:latest",
     "Java 25 - STA Cloud v0.1.0": "ghcr.io/sta-cloud-dev/prx-mc:v0.1.0",
     "Java 21 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_21",
