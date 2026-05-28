@@ -8,13 +8,11 @@ COPY src ./src
 RUN mvn -B test package
 
 FROM ${RUNTIME_IMAGE}
+USER root
 WORKDIR /opt/stashield
 COPY --from=build /workspace/target/STAShield.jar /opt/stashield/STAShield.jar
 COPY config/stashield.example.toml /opt/stashield/config/stashield.toml
 COPY docker-entrypoint.sh /opt/stashield/docker-entrypoint.sh
-RUN chmod +x /opt/stashield/docker-entrypoint.sh \
-    && mkdir -p /home/container \
-    && chmod 0777 /home/container
 WORKDIR /home/container
 EXPOSE 25565
-ENTRYPOINT ["/opt/stashield/docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/opt/stashield/docker-entrypoint.sh"]
