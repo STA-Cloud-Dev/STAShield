@@ -21,16 +21,16 @@
     "Java 8 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_8"
   },
   "file_denylist": [],
-  "startup": "if [ -f /opt/stashield/STAShield.jar ]; then JAR=/opt/stashield/STAShield.jar; else JAR=/home/container/{{SERVER_JARFILE}}; fi; java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar ${JAR} --config /home/container/{{CONFIG_FILE}}",
+  "startup": "if [ -f /opt/stashield/STAShield.jar ]; then JAR=/opt/stashield/STAShield.jar; else JAR=/home/container/{{SERVER_JARFILE}}; fi; BACKEND_TARGET_HOST=\"${BACKEND_HOST:-AUTO}\"; if [ \"${BACKEND_TARGET_HOST}\" = \"AUTO\" ]; then BACKEND_TARGET_HOST=\"${SERVER_IP}\"; fi; sed -i \"s/^host = .*/host = \\\"${BACKEND_TARGET_HOST}\\\"/\" /home/container/{{CONFIG_FILE}}; sed -i \"s/^bind_port = .*/bind_port = ${SERVER_PORT}/\" /home/container/{{CONFIG_FILE}}; java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar ${JAR} --config /home/container/{{CONFIG_FILE}}",
   "config": {
-    "files": "{\n  \"stashield.toml\": {\n    \"parser\": \"file\",\n    \"find\": {\n      \"bind_host =\": \"bind_host = \\\"0.0.0.0\\\"\",\n      \"bind_port =\": \"bind_port = {{server.build.default.port}}\",\n      \"max_packet_bytes =\": \"max_packet_bytes = {{env.MAX_PACKET_BYTES}}\",\n      \"max_connections =\": \"max_connections = {{env.MAX_CONNECTIONS}}\",\n      \"host =\": \"host = \\\"{{env.BACKEND_HOST}}\\\"\",\n      \"port =\": \"port = {{env.BACKEND_PORT}}\",\n      \"rate_limit_per_ip =\": \"rate_limit_per_ip = {{env.RATE_LIMIT_PER_IP}}\",\n      \"burst_limit_per_ip =\": \"burst_limit_per_ip = {{env.BURST_LIMIT_PER_IP}}\",\n      \"burst_window_ms =\": \"burst_window_ms = {{env.BURST_WINDOW_MS}}\",\n      \"bot_score_threshold =\": \"bot_score_threshold = {{env.BOT_SCORE_THRESHOLD}}\",\n      \"max_active_logins_per_ip =\": \"max_active_logins_per_ip = {{env.MAX_ACTIVE_LOGINS_PER_IP}}\"\n    }\n  }\n}",
+    "files": "{\n  \"stashield.toml\": {\n    \"parser\": \"file\",\n    \"find\": {\n      \"bind_host =\": \"bind_host = \\\"0.0.0.0\\\"\",\n      \"bind_port =\": \"bind_port = {{server.build.default.port}}\",\n      \"max_packet_bytes =\": \"max_packet_bytes = {{env.MAX_PACKET_BYTES}}\",\n      \"max_connections =\": \"max_connections = {{env.MAX_CONNECTIONS}}\",\n      \"port =\": \"port = {{env.BACKEND_PORT}}\",\n      \"rate_limit_per_ip =\": \"rate_limit_per_ip = {{env.RATE_LIMIT_PER_IP}}\",\n      \"burst_limit_per_ip =\": \"burst_limit_per_ip = {{env.BURST_LIMIT_PER_IP}}\",\n      \"burst_window_ms =\": \"burst_window_ms = {{env.BURST_WINDOW_MS}}\",\n      \"bot_score_threshold =\": \"bot_score_threshold = {{env.BOT_SCORE_THRESHOLD}}\",\n      \"max_active_logins_per_ip =\": \"max_active_logins_per_ip = {{env.MAX_ACTIVE_LOGINS_PER_IP}}\"\n    }\n  }\n}",
     "startup": "{\n  \"done\": \"Listening on\"\n}",
     "logs": "{}",
     "stop": "^C"
   },
   "scripts": {
     "installation": {
-      "script": "#!/bin/ash\nset -eu\ncd /mnt/server\n\nCONFIG_FILE=${CONFIG_FILE:-stashield.toml}\nSERVER_JARFILE=${SERVER_JARFILE:-STAShield.jar}\n\nif [ -n \"${STASHIELD_JAR_URL:-}\" ]; then\n  echo \"Downloading STAShield jar from ${STASHIELD_JAR_URL}\"\n  curl -L --fail -o \"${SERVER_JARFILE}\" \"${STASHIELD_JAR_URL}\"\nelse\n  echo \"No STASHIELD_JAR_URL configured. Using jar embedded in the STA Cloud Docker image or existing ${SERVER_JARFILE}.\"\nfi\n\nif [ ! -f \"${CONFIG_FILE}\" ]; then\n  echo \"Creating ${CONFIG_FILE}\"\n  cat > \"${CONFIG_FILE}\" <<EOF\n[server]\nbind_host = \"0.0.0.0\"\nbind_port = {{server.build.default.port}}\nbacklog = 256\nconnect_timeout_ms = 5000\nread_timeout_ms = 10000\nmax_packet_bytes = ${MAX_PACKET_BYTES:-2097152}\nmax_connections = ${MAX_CONNECTIONS:-2048}\n\n[backend]\nhost = \"${BACKEND_HOST:-127.0.0.1}\"\nport = ${BACKEND_PORT:-25565}\n\n[protection]\nenabled = true\nrate_limit_per_ip = ${RATE_LIMIT_PER_IP:-8}\nburst_limit_per_ip = ${BURST_LIMIT_PER_IP:-24}\nburst_window_ms = ${BURST_WINDOW_MS:-3000}\nbot_score_threshold = ${BOT_SCORE_THRESHOLD:-70}\nmax_active_logins_per_ip = ${MAX_ACTIVE_LOGINS_PER_IP:-3}\n\n[access]\nwhitelist_enabled = false\nwhitelist = []\nblacklist = []\n\n[metrics]\nenabled = true\nlog_interval_seconds = 30\nEOF\nelse\n  echo \"${CONFIG_FILE} already exists; leaving it unchanged.\"\nfi\n\necho \"STAShield install complete\"",
+      "script": "#!/bin/ash\nset -eu\ncd /mnt/server\n\nCONFIG_FILE=${CONFIG_FILE:-stashield.toml}\nSERVER_JARFILE=${SERVER_JARFILE:-STAShield.jar}\nBACKEND_TARGET_HOST=${BACKEND_HOST:-AUTO}\nif [ \"${BACKEND_TARGET_HOST}\" = \"AUTO\" ]; then\n  BACKEND_TARGET_HOST=${SERVER_IP}\nfi\n\nif [ -n \"${STASHIELD_JAR_URL:-}\" ]; then\n  echo \"Downloading STAShield jar from ${STASHIELD_JAR_URL}\"\n  curl -L --fail -o \"${SERVER_JARFILE}\" \"${STASHIELD_JAR_URL}\"\nelse\n  echo \"No STASHIELD_JAR_URL configured. Using jar embedded in the STA Cloud Docker image or existing ${SERVER_JARFILE}.\"\nfi\n\nif [ ! -f \"${CONFIG_FILE}\" ]; then\n  echo \"Creating ${CONFIG_FILE}\"\n  cat > \"${CONFIG_FILE}\" <<EOF\n[server]\nbind_host = \"0.0.0.0\"\nbind_port = ${SERVER_PORT}\nbacklog = 256\nconnect_timeout_ms = 5000\nread_timeout_ms = 10000\nmax_packet_bytes = ${MAX_PACKET_BYTES:-2097152}\nmax_connections = ${MAX_CONNECTIONS:-2048}\n\n[backend]\nhost = \"${BACKEND_TARGET_HOST}\"\nport = ${BACKEND_PORT:-25565}\n\n[protection]\nenabled = true\nrate_limit_per_ip = ${RATE_LIMIT_PER_IP:-8}\nburst_limit_per_ip = ${BURST_LIMIT_PER_IP:-24}\nburst_window_ms = ${BURST_WINDOW_MS:-3000}\nbot_score_threshold = ${BOT_SCORE_THRESHOLD:-70}\nmax_active_logins_per_ip = ${MAX_ACTIVE_LOGINS_PER_IP:-3}\n\n[access]\nwhitelist_enabled = false\nwhitelist = []\nblacklist = []\n\n[metrics]\nenabled = true\nlog_interval_seconds = 30\nEOF\nelse\n  echo \"${CONFIG_FILE} already exists; leaving it unchanged.\"\nfi\n\necho \"STAShield install complete\"",
       "container": "ghcr.io/ptero-eggs/installers:alpine",
       "entrypoint": "ash"
     }
@@ -68,12 +68,12 @@
     },
     {
       "name": "Backend Host",
-      "description": "Node IP, private IP, or reachable address of the real Minecraft backend server. Do not use 127.0.0.1 when the backend is another Pterodactyl server/container.",
+      "description": "Use AUTO to forward to this STAShield server's primary allocation IP / node IP. Set a concrete IP or hostname only if the backend is on another reachable node.",
       "env_variable": "BACKEND_HOST",
-      "default_value": "127.0.0.1",
+      "default_value": "AUTO",
       "user_viewable": true,
       "user_editable": true,
-      "rules": "required|string|max:255",
+      "rules": "required|string|max:255|regex:/^[A-Za-z0-9_.:-]+$/",
       "field_type": "text"
     },
     {

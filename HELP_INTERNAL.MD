@@ -44,7 +44,15 @@ In the egg, `bind_port` is set automatically from Pterodactyl's primary allocati
 
 Set `Backend Port` to the allocation port of the Minecraft backend server for that user/server. This value is different per Pterodactyl allocation.
 
-If the backend Minecraft server is another Pterodactyl server/container, avoid `127.0.0.1` for `Backend Host`. Inside Docker, `127.0.0.1` means the STAShield container itself. Use the node public IP, node private IP, or another reachable backend address.
+`Backend Host` defaults to:
+
+```text
+AUTO
+```
+
+At startup, `AUTO` is resolved to Pterodactyl's `SERVER_IP`, which is the primary allocation IP for the STAShield server. For same-node backend servers, this should normally be the node/allocation IP. If the backend Minecraft server is on another node, change `Backend Host` to that backend node's reachable public/private IP.
+
+Avoid `127.0.0.1` for `Backend Host` when the backend is another Pterodactyl server/container. Inside Docker, `127.0.0.1` means the STAShield container itself.
 
 ## Required GitHub token
 
