@@ -56,7 +56,8 @@ jobs:
           else
             gh release create "${VERSION}" target/STAShield.jar \
               --title "STAShield ${VERSION}" \
-              --notes "STAShield ${VERSION}"
+              --notes "STAShield ${VERSION}" \
+              --target "${GITHUB_SHA}"
           fi
 
       - name: Set up Docker Buildx

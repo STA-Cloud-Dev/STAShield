@@ -157,6 +157,8 @@ Default:
 https://github.com/STA-Cloud-Dev/STAShield/releases/download/v0.1.0/STAShield.jar
 ```
 
+This URL returns `404` until the GitHub Action has successfully uploaded `STAShield.jar` to the `v0.1.0` release.
+
 If the jar URL is private, set:
 
 ```text
@@ -170,6 +172,21 @@ Authorization: Bearer <token>
 ```
 
 Docker login to GHCR only authenticates Docker image pulls. It does not authenticate `curl` downloads from GitHub Releases. For a private/internal repository or release asset, set `STASHIELD_DOWNLOAD_TOKEN` as a hidden egg variable.
+
+### Jar download 404
+
+If startup logs:
+
+```text
+curl: (22) The requested URL returned error: 404
+```
+
+Check:
+
+- GitHub Action on branch `0.1.0` has completed successfully after the release-upload step was added.
+- Release `v0.1.0` exists in the repository.
+- Asset `STAShield.jar` exists under that release.
+- If the repo/release is private, hidden variable `STASHIELD_DOWNLOAD_TOKEN` is set to a GitHub token that can read the repository release asset.
 
 ## Expected STAShield startup log
 
