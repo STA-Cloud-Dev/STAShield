@@ -9,9 +9,12 @@ RUN mvn -B test package
 
 FROM ${RUNTIME_IMAGE}
 WORKDIR /opt/stashield
-COPY --from=build --chown=10001:10001 /workspace/target/STAShield.jar /opt/stashield/STAShield.jar
-COPY --chown=10001:10001 config/stashield.example.toml /opt/stashield/config/stashield.toml
-USER 10001:10001
+COPY --from=build /workspace/target/STAShield.jar /opt/stashield/STAShield.jar
+COPY config/stashield.example.toml /opt/stashield/config/stashield.toml
+COPY docker-entrypoint.sh /opt/stashield/docker-entrypoint.sh
+RUN chmod +x /opt/stashield/docker-entrypoint.sh \
+    && mkdir -p /home/container \
+    && chmod 0777 /home/container
+WORKDIR /home/container
 EXPOSE 25565
-ENTRYPOINT ["java", "-jar", "/opt/stashield/STAShield.jar"]
-CMD ["--config", "/opt/stashield/config/stashield.toml"]
+ENTRYPOINT ["/opt/stashield/docker-entrypoint.sh"]

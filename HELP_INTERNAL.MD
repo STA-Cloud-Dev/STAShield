@@ -131,6 +131,28 @@ Then create or restart a STAShield server from the panel. Wings should pull:
 ghcr.io/sta-cloud-dev/prx-mc:latest
 ```
 
+## Expected STAShield startup log
+
+The container image must generate runtime config from Pterodactyl environment variables.
+
+Expected good log:
+
+```text
+Loaded config from /home/container/stashield.toml
+Starting STAShield backend=160.30.192.59:25586
+Listening on 0.0.0.0:19999
+```
+
+Bad old-image log:
+
+```text
+Loaded config from /opt/stashield/config/stashield.toml
+Starting STAShield backend=127.0.0.1:25566
+Listening on 0.0.0.0:25565
+```
+
+If the bad log appears, rebuild/push the GHCR image from GitHub Actions and force Wings/Pterodactyl to pull the fresh `ghcr.io/sta-cloud-dev/prx-mc:latest` image.
+
 ## Package visibility checklist
 
 In GitHub:
