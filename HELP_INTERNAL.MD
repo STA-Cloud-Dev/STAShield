@@ -4,13 +4,13 @@ Internal runbook for STA Cloud operators.
 
 ## Goal
 
-Allow a VPS running Pterodactyl Wings to pull the internal/private GHCR package:
+Allow a VPS running Pterodactyl Wings to pull the STA Cloud Java runtime image used by the `STAShield.json` egg:
 
 ```text
-ghcr.io/sta-cloud-dev/prx-mc:latest
+ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
 
-This image is used by the `STAShield.json` egg.
+The egg then downloads `STAShield.jar` from `STASHIELD_JAR_URL` and runs it on that Java runtime.
 
 ## Pterodactyl port model
 
@@ -82,7 +82,7 @@ SSH into the VPS that runs Wings, then run:
 
 ```bash
 echo 'GH_PAT_CLASSIC' | docker login ghcr.io -u GITHUB_USERNAME --password-stdin
-docker pull ghcr.io/sta-cloud-dev/prx-mc:latest
+docker pull ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
 
 Replace:
@@ -93,7 +93,7 @@ Replace:
 Expected result:
 
 ```text
-Status: Downloaded newer image for ghcr.io/sta-cloud-dev/prx-mc:latest
+Status: Downloaded newer image for ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
 
 ## Configure Wings registry credentials
@@ -128,12 +128,46 @@ systemctl status wings --no-pager
 Then create or restart a STAShield server from the panel. Wings should pull:
 
 ```text
-ghcr.io/sta-cloud-dev/prx-mc:latest
+ghcr.io/sta-cloud-dev/deverlopment:java_25
+```
+
+## STAShield.jar download
+
+The egg does not use `ghcr.io/sta-cloud-dev/prx-mc` as the runtime image.
+
+It uses a STA Cloud Java runtime image, then downloads:
+
+```text
+STAShield.jar
+```
+
+Required egg variable:
+
+```text
+STASHIELD_JAR_URL
+```
+
+Default:
+
+```text
+https://github.com/STA-Cloud-Dev/STAShield/releases/download/v0.1.0/STAShield.jar
+```
+
+If the jar URL is private, set:
+
+```text
+STASHIELD_DOWNLOAD_TOKEN
+```
+
+The token is sent as:
+
+```text
+Authorization: Bearer <token>
 ```
 
 ## Expected STAShield startup log
 
-The container image must generate runtime config from Pterodactyl environment variables.
+The startup command must generate runtime config from Pterodactyl environment variables.
 
 Expected good log:
 
@@ -143,7 +177,7 @@ Starting STAShield backend=160.30.192.59:25586
 Listening on 0.0.0.0:19999
 ```
 
-Bad old-image log:
+Bad old STAShield-image log:
 
 ```text
 Loaded config from /opt/stashield/config/stashield.toml
@@ -151,22 +185,14 @@ Starting STAShield backend=127.0.0.1:25566
 Listening on 0.0.0.0:25565
 ```
 
-If the bad log appears, rebuild/push the GHCR image from GitHub Actions and force Wings/Pterodactyl to pull the fresh `ghcr.io/sta-cloud-dev/prx-mc:latest` image.
-
-GitHub Actions also pushes a commit-specific tag for cache-busting/debugging:
-
-```text
-ghcr.io/sta-cloud-dev/prx-mc:sha-<commit>
-```
-
-If `latest` still runs the old entrypoint on a Wings node, force-remove the old local image on the Wings node and pull `latest` again, or temporarily switch to the newest `sha-...` tag from the successful build for debugging.
+If the bad log appears, the server is still using the old STAShield Docker image. Switch the egg/server Docker image back to the STA Cloud Java runtime image.
 
 ## Package visibility checklist
 
 In GitHub:
 
 1. Go to `STA-Cloud-Dev` organization packages.
-2. Open package `prx-mc`.
+2. Open the Java runtime image package, for example `deverlopment`.
 3. Confirm package visibility is `Internal` or `Private`, not `Public`.
 4. Confirm the account used by the PAT has access to the organization/package.
 
@@ -183,7 +209,7 @@ Check:
 - Token has `read:packages`
 - Token owner is in `STA-Cloud-Dev`
 - Token is authorized for org SSO if required
-- Package is actually `ghcr.io/sta-cloud-dev/prx-mc`
+- Package is actually `ghcr.io/sta-cloud-dev/deverlopment`
 - Wings config uses registry key `ghcr.io`
 
 ### unauthorized: authentication required
@@ -195,7 +221,7 @@ Run:
 ```bash
 docker logout ghcr.io
 echo 'GH_PAT_CLASSIC' | docker login ghcr.io -u GITHUB_USERNAME --password-stdin
-docker pull ghcr.io/sta-cloud-dev/prx-mc:latest
+docker pull ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
 
 If manual pull works but Wings fails, re-check `/etc/pterodactyl/config.yml` and restart Wings.
@@ -204,24 +230,23 @@ If manual pull works but Wings fails, re-check `/etc/pterodactyl/config.yml` and
 
 The tag does not exist.
 
-Check the pushed tags:
+Check the runtime tags:
 
 ```text
-latest
-v0.1.0
+java_25
 java_21
 java_17
 java_11
 java_8
 ```
 
-For release builds, prefer:
+For the STAShield egg default, use:
 
 ```text
-ghcr.io/sta-cloud-dev/prx-mc:v0.1.0
+ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
 
-### pull access denied for ghcr.io/sta-cloud-dev/prx-mc
+### pull access denied for ghcr.io/sta-cloud-dev/deverlopment
 
 This can happen when the package is private/internal and the token account cannot access the org package.
 
@@ -239,7 +264,7 @@ Fix by using a bot/service account that is a member of `STA-Cloud-Dev`, or grant
 
 ```bash
 echo 'GH_PAT_CLASSIC' | docker login ghcr.io -u GITHUB_USERNAME --password-stdin
-docker pull ghcr.io/sta-cloud-dev/prx-mc:latest
+docker pull ghcr.io/sta-cloud-dev/deverlopment:java_25
 nano /etc/pterodactyl/config.yml
 systemctl restart wings
 systemctl status wings --no-pager

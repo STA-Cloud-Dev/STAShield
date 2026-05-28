@@ -101,11 +101,13 @@ Import the ready egg file:
 STAShield.json
 ```
 
-The egg uses `PTDL_v2`, generates `stashield.toml`, exposes backend/protection variables, and defaults to the private/internal GHCR image:
+The egg uses `PTDL_v2`, generates `stashield.toml`, exposes backend/protection variables, and defaults to the STA Cloud Java 25 runtime image:
 
 ```text
-ghcr.io/sta-cloud-dev/prx-mc:latest
+ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
+
+The egg downloads `STAShield.jar` during install through `STASHIELD_JAR_URL`, then runs it with Java. The manual GitHub Action uploads `target/STAShield.jar` to the `v0.1.0` GitHub Release so the default egg URL can fetch it.
 
 ## GitHub Actions
 

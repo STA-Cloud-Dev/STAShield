@@ -14,7 +14,7 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 env:
@@ -45,6 +45,19 @@ jobs:
           name: STAShield.jar
           path: target/STAShield.jar
           if-no-files-found: error
+
+      - name: Publish STAShield.jar release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            gh release upload "${VERSION}" target/STAShield.jar --clobber
+          else
+            gh release create "${VERSION}" target/STAShield.jar \
+              --title "STAShield ${VERSION}" \
+              --notes "STAShield ${VERSION}"
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
