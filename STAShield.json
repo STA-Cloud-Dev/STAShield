@@ -7,30 +7,29 @@
   "exported_at": "2026-05-28T09:01:22+07:00",
   "name": "STAShield",
   "author": "STA Cloud",
-  "description": "STAShield is STA Cloud's private Minecraft Java protection proxy for Pterodactyl. The proxy listens on this server's primary allocation port and forwards allowed Minecraft traffic to the configured backend Minecraft server allocation.",
+  "description": "STAShield is STA Cloud's private Minecraft Java protection proxy for Pterodactyl. The egg runs on STA Cloud Java runtime images, downloads STAShield.jar during install, listens on this server's primary allocation port, and forwards allowed Minecraft traffic to the configured backend allocation.",
   "features": [
     "java_version",
     "pid_limit"
   ],
   "docker_images": {
-    "Java 25 - STA Cloud latest": "ghcr.io/sta-cloud-dev/prx-mc:latest",
-    "Java 25 - STA Cloud v0.1.0": "ghcr.io/sta-cloud-dev/prx-mc:v0.1.0",
-    "Java 21 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_21",
-    "Java 17 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_17",
-    "Java 11 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_11",
-    "Java 8 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_8"
+    "Java 25": "ghcr.io/sta-cloud-dev/deverlopment:java_25",
+    "Java 21": "ghcr.io/sta-cloud-dev/deverlopment:java_21",
+    "Java 17": "ghcr.io/sta-cloud-dev/deverlopment:java_17",
+    "Java 11": "ghcr.io/sta-cloud-dev/deverlopment:java_11",
+    "Java 8": "ghcr.io/sta-cloud-dev/deverlopment:java_8"
   },
   "file_denylist": [],
-  "startup": "/bin/sh /opt/stashield/docker-entrypoint.sh",
+  "startup": "set -e; JAR_PATH=\"/home/container/{{SERVER_JARFILE}}\"; TMP_JAR=\"${JAR_PATH}.download\"; if [ ! -f \"${JAR_PATH}\" ]; then if [ -z \"${STASHIELD_JAR_URL:-}\" ]; then echo \"STASHIELD_JAR_URL is required to download STAShield.jar\"; exit 1; fi; echo \"Downloading STAShield.jar from ${STASHIELD_JAR_URL}\"; rm -f \"${TMP_JAR}\"; if [ -n \"${STASHIELD_DOWNLOAD_TOKEN:-}\" ]; then ASSET_API_URL=\"$(curl -fsSL --retry 3 --retry-delay 2 -H \"Authorization: Bearer ${STASHIELD_DOWNLOAD_TOKEN}\" -H \"Accept: application/vnd.github+json\" \"https://api.github.com/repos/STA-Cloud-Dev/STAShield/releases/tags/v0.1.0\" | sed -n '/\"url\": \"https:\\/\\/api.github.com\\/repos\\/STA-Cloud-Dev\\/STAShield\\/releases\\/assets\\//{s/.*\"url\": \"\\([^\"]*\\)\".*/\\1/;h};/\"name\": \"STAShield.jar\"/{x;p;q;}')\"; if [ -z \"${ASSET_API_URL}\" ]; then echo \"Could not find STAShield.jar in release v0.1.0. Run the GitHub Action first and verify the release asset exists.\"; exit 1; fi; curl -L --fail --retry 3 --retry-delay 2 -H \"Authorization: Bearer ${STASHIELD_DOWNLOAD_TOKEN}\" -H \"Accept: application/octet-stream\" -o \"${TMP_JAR}\" \"${ASSET_API_URL}\" || { rm -f \"${TMP_JAR}\"; echo \"Failed to download STAShield.jar through GitHub release asset API.\"; exit 1; }; else curl -L --fail --retry 3 --retry-delay 2 -o \"${TMP_JAR}\" \"${STASHIELD_JAR_URL}\" || { rm -f \"${TMP_JAR}\"; echo \"Failed to download STAShield.jar. Check that the release asset exists or set STASHIELD_DOWNLOAD_TOKEN for private downloads.\"; exit 1; }; fi; mv \"${TMP_JAR}\" \"${JAR_PATH}\"; else echo \"${JAR_PATH} already exists; skipping download\"; fi; BACKEND_TARGET_HOST=\"${BACKEND_HOST:-AUTO}\"; if [ \"${BACKEND_TARGET_HOST}\" = \"AUTO\" ]; then BACKEND_TARGET_HOST=\"${SERVER_IP}\"; fi; CONFIG_PATH=\"/home/container/{{CONFIG_FILE}}\"; mkdir -p \"$(dirname \"${CONFIG_PATH}\")\"; printf '[server]\\nbind_host = \"0.0.0.0\"\\nbind_port = %s\\nbacklog = 256\\nconnect_timeout_ms = 5000\\nread_timeout_ms = 10000\\nmax_packet_bytes = %s\\nmax_connections = %s\\n\\n[backend]\\nhost = \"%s\"\\nport = %s\\n\\n[protection]\\nenabled = true\\nrate_limit_per_ip = %s\\nburst_limit_per_ip = %s\\nburst_window_ms = %s\\nbot_score_threshold = %s\\nmax_active_logins_per_ip = %s\\n\\n[access]\\nwhitelist_enabled = false\\nwhitelist = []\\nblacklist = []\\n\\n[metrics]\\nenabled = true\\nlog_interval_seconds = 30\\n' \"${SERVER_PORT}\" \"${MAX_PACKET_BYTES}\" \"${MAX_CONNECTIONS}\" \"${BACKEND_TARGET_HOST}\" \"${BACKEND_PORT}\" \"${RATE_LIMIT_PER_IP}\" \"${BURST_LIMIT_PER_IP}\" \"${BURST_WINDOW_MS}\" \"${BOT_SCORE_THRESHOLD}\" \"${MAX_ACTIVE_LOGINS_PER_IP}\" > \"${CONFIG_PATH}\"; java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar \"${JAR_PATH}\" --config \"${CONFIG_PATH}\"",
   "config": {
-    "files": "{\n  \"stashield.toml\": {\n    \"parser\": \"file\",\n    \"find\": {\n      \"bind_host =\": \"bind_host = \\\"0.0.0.0\\\"\",\n      \"bind_port =\": \"bind_port = {{server.build.default.port}}\",\n      \"max_packet_bytes =\": \"max_packet_bytes = {{env.MAX_PACKET_BYTES}}\",\n      \"max_connections =\": \"max_connections = {{env.MAX_CONNECTIONS}}\",\n      \"port =\": \"port = {{env.BACKEND_PORT}}\",\n      \"rate_limit_per_ip =\": \"rate_limit_per_ip = {{env.RATE_LIMIT_PER_IP}}\",\n      \"burst_limit_per_ip =\": \"burst_limit_per_ip = {{env.BURST_LIMIT_PER_IP}}\",\n      \"burst_window_ms =\": \"burst_window_ms = {{env.BURST_WINDOW_MS}}\",\n      \"bot_score_threshold =\": \"bot_score_threshold = {{env.BOT_SCORE_THRESHOLD}}\",\n      \"max_active_logins_per_ip =\": \"max_active_logins_per_ip = {{env.MAX_ACTIVE_LOGINS_PER_IP}}\"\n    }\n  }\n}",
+    "files": "{\n  \"stashield.toml\": {\n    \"parser\": \"file\",\n    \"find\": {\n      \"bind_host =\": \"bind_host = \\\"0.0.0.0\\\"\",\n      \"bind_port =\": \"bind_port = {{server.build.default.port}}\",\n      \"max_packet_bytes =\": \"max_packet_bytes = {{env.MAX_PACKET_BYTES}}\",\n      \"max_connections =\": \"max_connections = {{env.MAX_CONNECTIONS}}\",\n      \"host =\": \"host = \\\"{{env.BACKEND_HOST}}\\\"\",\n      \"port =\": \"port = {{env.BACKEND_PORT}}\",\n      \"rate_limit_per_ip =\": \"rate_limit_per_ip = {{env.RATE_LIMIT_PER_IP}}\",\n      \"burst_limit_per_ip =\": \"burst_limit_per_ip = {{env.BURST_LIMIT_PER_IP}}\",\n      \"burst_window_ms =\": \"burst_window_ms = {{env.BURST_WINDOW_MS}}\",\n      \"bot_score_threshold =\": \"bot_score_threshold = {{env.BOT_SCORE_THRESHOLD}}\",\n      \"max_active_logins_per_ip =\": \"max_active_logins_per_ip = {{env.MAX_ACTIVE_LOGINS_PER_IP}}\"\n    }\n  }\n}",
     "startup": "{\n  \"done\": \"Listening on\"\n}",
     "logs": "{}",
     "stop": "^C"
   },
   "scripts": {
     "installation": {
-      "script": "#!/bin/ash\nset -eu\ncd /mnt/server\n\nCONFIG_FILE=${CONFIG_FILE:-stashield.toml}\nSERVER_JARFILE=${SERVER_JARFILE:-STAShield.jar}\nBACKEND_TARGET_HOST=${BACKEND_HOST:-AUTO}\nif [ \"${BACKEND_TARGET_HOST}\" = \"AUTO\" ]; then\n  BACKEND_TARGET_HOST=${SERVER_IP}\nfi\n\nif [ -n \"${STASHIELD_JAR_URL:-}\" ]; then\n  echo \"Downloading STAShield jar from ${STASHIELD_JAR_URL}\"\n  curl -L --fail -o \"${SERVER_JARFILE}\" \"${STASHIELD_JAR_URL}\"\nelse\n  echo \"No STASHIELD_JAR_URL configured. Using jar embedded in the STA Cloud Docker image or existing ${SERVER_JARFILE}.\"\nfi\n\nif [ ! -f \"${CONFIG_FILE}\" ]; then\n  echo \"Creating ${CONFIG_FILE}\"\n  cat > \"${CONFIG_FILE}\" <<EOF\n[server]\nbind_host = \"0.0.0.0\"\nbind_port = ${SERVER_PORT}\nbacklog = 256\nconnect_timeout_ms = 5000\nread_timeout_ms = 10000\nmax_packet_bytes = ${MAX_PACKET_BYTES:-2097152}\nmax_connections = ${MAX_CONNECTIONS:-2048}\n\n[backend]\nhost = \"${BACKEND_TARGET_HOST}\"\nport = ${BACKEND_PORT:-25565}\n\n[protection]\nenabled = true\nrate_limit_per_ip = ${RATE_LIMIT_PER_IP:-8}\nburst_limit_per_ip = ${BURST_LIMIT_PER_IP:-24}\nburst_window_ms = ${BURST_WINDOW_MS:-3000}\nbot_score_threshold = ${BOT_SCORE_THRESHOLD:-70}\nmax_active_logins_per_ip = ${MAX_ACTIVE_LOGINS_PER_IP:-3}\n\n[access]\nwhitelist_enabled = false\nwhitelist = []\nblacklist = []\n\n[metrics]\nenabled = true\nlog_interval_seconds = 30\nEOF\nelse\n  echo \"${CONFIG_FILE} already exists; leaving it unchanged.\"\nfi\n\necho \"STAShield install complete\"",
+      "script": "#!/bin/ash\nset -eu\ncd /mnt/server\n\nCONFIG_FILE=${CONFIG_FILE:-stashield.toml}\nSERVER_JARFILE=${SERVER_JARFILE:-STAShield.jar}\nTMP_JAR=\"${SERVER_JARFILE}.download\"\nBACKEND_TARGET_HOST=${BACKEND_HOST:-AUTO}\nif [ \"${BACKEND_TARGET_HOST}\" = \"AUTO\" ]; then\n  BACKEND_TARGET_HOST=${SERVER_IP}\nfi\n\nif [ ! -f \"${SERVER_JARFILE}\" ]; then\n  if [ -z \"${STASHIELD_JAR_URL:-}\" ]; then\n    echo \"STASHIELD_JAR_URL is required to download STAShield.jar\"\n    exit 1\n  fi\n  echo \"Downloading STAShield.jar from ${STASHIELD_JAR_URL}\"\n  rm -f \"${TMP_JAR}\"\n  if [ -n \"${STASHIELD_DOWNLOAD_TOKEN:-}\" ]; then\n    curl -L --fail --retry 3 --retry-delay 2 -H \"Authorization: Bearer ${STASHIELD_DOWNLOAD_TOKEN}\" -o \"${TMP_JAR}\" \"${STASHIELD_JAR_URL}\"\n  else\n    curl -L --fail --retry 3 --retry-delay 2 -o \"${TMP_JAR}\" \"${STASHIELD_JAR_URL}\"\n  fi\n  mv \"${TMP_JAR}\" \"${SERVER_JARFILE}\"\nelse\n  echo \"${SERVER_JARFILE} already exists; leaving it unchanged.\"\nfi\n\ncat > \"${CONFIG_FILE}\" <<EOF\n[server]\nbind_host = \"0.0.0.0\"\nbind_port = ${SERVER_PORT}\nbacklog = 256\nconnect_timeout_ms = 5000\nread_timeout_ms = 10000\nmax_packet_bytes = ${MAX_PACKET_BYTES:-2097152}\nmax_connections = ${MAX_CONNECTIONS:-2048}\n\n[backend]\nhost = \"${BACKEND_TARGET_HOST}\"\nport = ${BACKEND_PORT:-25565}\n\n[protection]\nenabled = true\nrate_limit_per_ip = ${RATE_LIMIT_PER_IP:-8}\nburst_limit_per_ip = ${BURST_LIMIT_PER_IP:-24}\nburst_window_ms = ${BURST_WINDOW_MS:-3000}\nbot_score_threshold = ${BOT_SCORE_THRESHOLD:-70}\nmax_active_logins_per_ip = ${MAX_ACTIVE_LOGINS_PER_IP:-3}\n\n[access]\nwhitelist_enabled = false\nwhitelist = []\nblacklist = []\n\n[metrics]\nenabled = true\nlog_interval_seconds = 30\nEOF\n\necho \"STAShield install complete\"",
       "container": "ghcr.io/ptero-eggs/installers:alpine",
       "entrypoint": "ash"
     }
@@ -38,7 +37,7 @@
   "variables": [
     {
       "name": "Server Jar File",
-      "description": "Local jar name used when the selected Docker image does not already include /opt/stashield/STAShield.jar.",
+      "description": "Local STAShield jar name downloaded and run by the egg.",
       "env_variable": "SERVER_JARFILE",
       "default_value": "STAShield.jar",
       "user_viewable": true,
@@ -48,8 +47,18 @@
     },
     {
       "name": "STAShield Jar URL",
-      "description": "Optional private URL used by the install script to download STAShield.jar into /home/container. Leave empty when using the STA Cloud Docker image with the jar embedded.",
+      "description": "Direct URL used by the install script to download STAShield.jar.",
       "env_variable": "STASHIELD_JAR_URL",
+      "default_value": "https://github.com/STA-Cloud-Dev/STAShield/releases/download/v0.1.0/STAShield.jar",
+      "user_viewable": false,
+      "user_editable": false,
+      "rules": "required|string|max:1024",
+      "field_type": "text"
+    },
+    {
+      "name": "STAShield Download Token",
+      "description": "Optional bearer token used only when STAShield.jar is stored behind authenticated download.",
+      "env_variable": "STASHIELD_DOWNLOAD_TOKEN",
       "default_value": "",
       "user_viewable": false,
       "user_editable": false,

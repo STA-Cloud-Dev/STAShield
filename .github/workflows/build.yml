@@ -14,7 +14,7 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 env:
@@ -46,6 +46,20 @@ jobs:
           path: target/STAShield.jar
           if-no-files-found: error
 
+      - name: Publish STAShield.jar release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            gh release upload "${VERSION}" target/STAShield.jar --clobber
+          else
+            gh release create "${VERSION}" target/STAShield.jar \
+              --title "STAShield ${VERSION}" \
+              --notes "STAShield ${VERSION}" \
+              --target "${GITHUB_SHA}"
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -58,16 +72,20 @@ jobs:
 
       - name: Build Docker image
         run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
           docker build \
             --label org.opencontainers.image.title=STAShield \
             --label org.opencontainers.image.source=https://github.com/STA-Cloud-Dev/STAShield \
             --label org.opencontainers.image.visibility=private \
             -t "${IMAGE}:latest" \
             -t "${IMAGE}:${{ inputs.version }}" \
+            -t "${IMAGE}:sha-${SHORT_SHA}" \
             .
 
       - name: Push Docker image
         if: ${{ inputs.push_image }}
         run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
           docker push "${IMAGE}:latest"
           docker push "${IMAGE}:${{ inputs.version }}"
+          docker push "${IMAGE}:sha-${SHORT_SHA}"
