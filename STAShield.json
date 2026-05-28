@@ -21,7 +21,7 @@
     "Java 8 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_8"
   },
   "file_denylist": [],
-  "startup": "/opt/stashield/docker-entrypoint.sh",
+  "startup": "/bin/sh /opt/stashield/docker-entrypoint.sh",
   "config": {
     "files": "{\n  \"stashield.toml\": {\n    \"parser\": \"file\",\n    \"find\": {\n      \"bind_host =\": \"bind_host = \\\"0.0.0.0\\\"\",\n      \"bind_port =\": \"bind_port = {{server.build.default.port}}\",\n      \"max_packet_bytes =\": \"max_packet_bytes = {{env.MAX_PACKET_BYTES}}\",\n      \"max_connections =\": \"max_connections = {{env.MAX_CONNECTIONS}}\",\n      \"port =\": \"port = {{env.BACKEND_PORT}}\",\n      \"rate_limit_per_ip =\": \"rate_limit_per_ip = {{env.RATE_LIMIT_PER_IP}}\",\n      \"burst_limit_per_ip =\": \"burst_limit_per_ip = {{env.BURST_LIMIT_PER_IP}}\",\n      \"burst_window_ms =\": \"burst_window_ms = {{env.BURST_WINDOW_MS}}\",\n      \"bot_score_threshold =\": \"bot_score_threshold = {{env.BOT_SCORE_THRESHOLD}}\",\n      \"max_active_logins_per_ip =\": \"max_active_logins_per_ip = {{env.MAX_ACTIVE_LOGINS_PER_IP}}\"\n    }\n  }\n}",
     "startup": "{\n  \"done\": \"Listening on\"\n}",
