@@ -10,7 +10,7 @@ Allow a VPS running Pterodactyl Wings to pull the STA Cloud Java runtime image u
 ghcr.io/sta-cloud-dev/deverlopment:java_25
 ```
 
-The egg then downloads `STAShield.jar` from `STASHIELD_JAR_URL` and runs it on that Java runtime.
+The egg downloads `STAShield.jar` from hidden variable `STASHIELD_JAR_URL` and runs it on that Java runtime.
 
 ## Pterodactyl port model
 
@@ -147,6 +147,10 @@ Required egg variable:
 STASHIELD_JAR_URL
 ```
 
+This variable is hidden from users in `STAShield.json`.
+
+The install script downloads the jar when installing. The startup command also checks `/home/container/STAShield.jar`; if the file is missing, it downloads it before running Java. If the file already exists, startup skips the download.
+
 Default:
 
 ```text
@@ -164,6 +168,8 @@ The token is sent as:
 ```text
 Authorization: Bearer <token>
 ```
+
+Docker login to GHCR only authenticates Docker image pulls. It does not authenticate `curl` downloads from GitHub Releases. For a private/internal repository or release asset, set `STASHIELD_DOWNLOAD_TOKEN` as a hidden egg variable.
 
 ## Expected STAShield startup log
 
