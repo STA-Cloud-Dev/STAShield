@@ -13,12 +13,7 @@
     "pid_limit"
   ],
   "docker_images": {
-    "Java 25 - STA Cloud latest": "ghcr.io/sta-cloud-dev/prx-mc:latest",
-    "Java 25 - STA Cloud v0.1.0": "ghcr.io/sta-cloud-dev/prx-mc:v0.1.0",
-    "Java 21 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_21",
-    "Java 17 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_17",
-    "Java 11 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_11",
-    "Java 8 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_8"
+    "STA Cloud STAShield": "ghcr.io/sta-cloud-dev/prx-mc:latest"
   },
   "file_denylist": [],
   "startup": "/bin/sh /opt/stashield/docker-entrypoint.sh",
