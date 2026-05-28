@@ -1,0 +1,74 @@
+name: Build STAShield
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Docker version tag, for example v0.1.0
+        required: true
+        default: v0.1.0
+      push_image:
+        description: Push GHCR image
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/sta-cloud-dev/prx-mc
+
+jobs:
+  build:
+    name: Build jar and image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Build and test STAShield.jar
+        run: mvn -B test package
+
+      - name: Upload STAShield.jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: STAShield.jar
+          path: target/STAShield.jar
+          if-no-files-found: error
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: ${{ inputs.push_image }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --label org.opencontainers.image.title=STAShield \
+            --label org.opencontainers.image.source=https://github.com/STA-Cloud-Dev/STAShield \
+            --label org.opencontainers.image.visibility=private \
+            -t "${IMAGE}:latest" \
+            -t "${IMAGE}:${{ inputs.version }}" \
+            .
+
+      - name: Push Docker image
+        if: ${{ inputs.push_image }}
+        run: |
+          docker push "${IMAGE}:latest"
+          docker push "${IMAGE}:${{ inputs.version }}"

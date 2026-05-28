@@ -1,0 +1,160 @@
+{
+  "_comment": "STAShield Pterodactyl egg for STA Cloud internal/private deployment.",
+  "meta": {
+    "version": "PTDL_v2",
+    "update_url": null
+  },
+  "exported_at": "2026-05-28T09:01:22+07:00",
+  "name": "STAShield",
+  "author": "STA Cloud",
+  "description": "STAShield is STA Cloud's private Minecraft Java protection proxy. This clean-room egg runs STAShield.jar with a generated stashield.toml config and forwards Minecraft traffic to the configured backend.",
+  "features": [
+    "java_version",
+    "pid_limit"
+  ],
+  "docker_images": {
+    "Java 25 - STA Cloud latest": "ghcr.io/sta-cloud-dev/prx-mc:latest",
+    "Java 25 - STA Cloud v0.1.0": "ghcr.io/sta-cloud-dev/prx-mc:v0.1.0",
+    "Java 21 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_21",
+    "Java 17 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_17",
+    "Java 11 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_11",
+    "Java 8 - STA Cloud": "ghcr.io/sta-cloud-dev/prx-mc:java_8"
+  },
+  "file_denylist": [],
+  "startup": "if [ -f /opt/stashield/STAShield.jar ]; then JAR=/opt/stashield/STAShield.jar; else JAR=/home/container/{{SERVER_JARFILE}}; fi; java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar ${JAR} --config /home/container/{{CONFIG_FILE}}",
+  "config": {
+    "files": "{\n  \"stashield.toml\": {\n    \"parser\": \"file\",\n    \"find\": {\n      \"bind_host =\": \"bind_host = \\\"0.0.0.0\\\"\",\n      \"bind_port =\": \"bind_port = {{server.build.default.port}}\",\n      \"max_packet_bytes =\": \"max_packet_bytes = {{env.MAX_PACKET_BYTES}}\",\n      \"max_connections =\": \"max_connections = {{env.MAX_CONNECTIONS}}\",\n      \"host =\": \"host = \\\"{{env.BACKEND_HOST}}\\\"\",\n      \"port =\": \"port = {{env.BACKEND_PORT}}\",\n      \"rate_limit_per_ip =\": \"rate_limit_per_ip = {{env.RATE_LIMIT_PER_IP}}\",\n      \"burst_limit_per_ip =\": \"burst_limit_per_ip = {{env.BURST_LIMIT_PER_IP}}\",\n      \"burst_window_ms =\": \"burst_window_ms = {{env.BURST_WINDOW_MS}}\",\n      \"bot_score_threshold =\": \"bot_score_threshold = {{env.BOT_SCORE_THRESHOLD}}\",\n      \"max_active_logins_per_ip =\": \"max_active_logins_per_ip = {{env.MAX_ACTIVE_LOGINS_PER_IP}}\"\n    }\n  }\n}",
+    "startup": "{\n  \"done\": \"Listening on\"\n}",
+    "logs": "{}",
+    "stop": "^C"
+  },
+  "scripts": {
+    "installation": {
+      "script": "#!/bin/ash\nset -eu\ncd /mnt/server\n\nCONFIG_FILE=${CONFIG_FILE:-stashield.toml}\nSERVER_JARFILE=${SERVER_JARFILE:-STAShield.jar}\n\nif [ -n \"${STASHIELD_JAR_URL:-}\" ]; then\n  echo \"Downloading STAShield jar from ${STASHIELD_JAR_URL}\"\n  curl -L --fail -o \"${SERVER_JARFILE}\" \"${STASHIELD_JAR_URL}\"\nelse\n  echo \"No STASHIELD_JAR_URL configured. Using jar embedded in the STA Cloud Docker image or existing ${SERVER_JARFILE}.\"\nfi\n\nif [ ! -f \"${CONFIG_FILE}\" ]; then\n  echo \"Creating ${CONFIG_FILE}\"\n  cat > \"${CONFIG_FILE}\" <<EOF\n[server]\nbind_host = \"0.0.0.0\"\nbind_port = ${SERVER_PORT:-25565}\nbacklog = 256\nconnect_timeout_ms = 5000\nread_timeout_ms = 10000\nmax_packet_bytes = ${MAX_PACKET_BYTES:-2097152}\nmax_connections = ${MAX_CONNECTIONS:-2048}\n\n[backend]\nhost = \"${BACKEND_HOST:-127.0.0.1}\"\nport = ${BACKEND_PORT:-25566}\n\n[protection]\nenabled = true\nrate_limit_per_ip = ${RATE_LIMIT_PER_IP:-8}\nburst_limit_per_ip = ${BURST_LIMIT_PER_IP:-24}\nburst_window_ms = ${BURST_WINDOW_MS:-3000}\nbot_score_threshold = ${BOT_SCORE_THRESHOLD:-70}\nmax_active_logins_per_ip = ${MAX_ACTIVE_LOGINS_PER_IP:-3}\n\n[access]\nwhitelist_enabled = false\nwhitelist = []\nblacklist = []\n\n[metrics]\nenabled = true\nlog_interval_seconds = 30\nEOF\nelse\n  echo \"${CONFIG_FILE} already exists; leaving it unchanged.\"\nfi\n\necho \"STAShield install complete\"",
+      "container": "ghcr.io/ptero-eggs/installers:alpine",
+      "entrypoint": "ash"
+    }
+  },
+  "variables": [
+    {
+      "name": "Server Jar File",
+      "description": "Local jar name used when the selected Docker image does not already include /opt/stashield/STAShield.jar.",
+      "env_variable": "SERVER_JARFILE",
+      "default_value": "STAShield.jar",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:64|regex:/^([\\w\\d._-]+)(\\.jar)$/",
+      "field_type": "text"
+    },
+    {
+      "name": "STAShield Jar URL",
+      "description": "Optional private URL used by the install script to download STAShield.jar into /home/container. Leave empty when using the STA Cloud Docker image with the jar embedded.",
+      "env_variable": "STASHIELD_JAR_URL",
+      "default_value": "",
+      "user_viewable": false,
+      "user_editable": false,
+      "rules": "nullable|string|max:512",
+      "field_type": "text"
+    },
+    {
+      "name": "Config File",
+      "description": "STAShield TOML config file path relative to /home/container.",
+      "env_variable": "CONFIG_FILE",
+      "default_value": "stashield.toml",
+      "user_viewable": true,
+      "user_editable": false,
+      "rules": "required|string|max:64",
+      "field_type": "text"
+    },
+    {
+      "name": "Backend Host",
+      "description": "Minecraft backend server address that STAShield forwards allowed traffic to.",
+      "env_variable": "BACKEND_HOST",
+      "default_value": "127.0.0.1",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|max:255",
+      "field_type": "text"
+    },
+    {
+      "name": "Backend Port",
+      "description": "Minecraft backend server port that STAShield forwards allowed traffic to.",
+      "env_variable": "BACKEND_PORT",
+      "default_value": "25566",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|between:1,65535",
+      "field_type": "text"
+    },
+    {
+      "name": "Max Packet Bytes",
+      "description": "Maximum first Minecraft packet payload size accepted by STAShield.",
+      "env_variable": "MAX_PACKET_BYTES",
+      "default_value": "2097152",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1",
+      "field_type": "text"
+    },
+    {
+      "name": "Max Connections",
+      "description": "Maximum active TCP connections allowed by the STAShield process.",
+      "env_variable": "MAX_CONNECTIONS",
+      "default_value": "2048",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1",
+      "field_type": "text"
+    },
+    {
+      "name": "Rate Limit Per IP",
+      "description": "Allowed new connections per IP per second before STAShield blocks the source.",
+      "env_variable": "RATE_LIMIT_PER_IP",
+      "default_value": "8",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1",
+      "field_type": "text"
+    },
+    {
+      "name": "Burst Limit Per IP",
+      "description": "Allowed new connections per IP inside the configured burst window.",
+      "env_variable": "BURST_LIMIT_PER_IP",
+      "default_value": "24",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1",
+      "field_type": "text"
+    },
+    {
+      "name": "Burst Window MS",
+      "description": "Burst protection window in milliseconds.",
+      "env_variable": "BURST_WINDOW_MS",
+      "default_value": "3000",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1",
+      "field_type": "text"
+    },
+    {
+      "name": "Bot Score Threshold",
+      "description": "Bot score threshold from 1 to 100. Sources at or above this score are blocked.",
+      "env_variable": "BOT_SCORE_THRESHOLD",
+      "default_value": "70",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|between:1,100",
+      "field_type": "text"
+    },
+    {
+      "name": "Max Active Logins Per IP",
+      "description": "Maximum concurrent login-state connections allowed per IP.",
+      "env_variable": "MAX_ACTIVE_LOGINS_PER_IP",
+      "default_value": "3",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1",
+      "field_type": "text"
+    }
+  ]
+}

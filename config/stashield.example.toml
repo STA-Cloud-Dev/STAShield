@@ -1,0 +1,31 @@
+# STAShield example configuration.
+
+[server]
+bind_host = "0.0.0.0"
+bind_port = 25565
+backlog = 256
+connect_timeout_ms = 5000
+read_timeout_ms = 10000
+max_packet_bytes = 2097152
+max_connections = 2048
+
+[backend]
+host = "127.0.0.1"
+port = 25566
+
+[protection]
+enabled = true
+rate_limit_per_ip = 8
+burst_limit_per_ip = 24
+burst_window_ms = 3000
+bot_score_threshold = 70
+max_active_logins_per_ip = 3
+
+[access]
+whitelist_enabled = false
+whitelist = []
+blacklist = []
+
+[metrics]
+enabled = true
+log_interval_seconds = 30
