@@ -173,6 +173,8 @@ Authorization: Bearer <token>
 
 Docker login to GHCR only authenticates Docker image pulls. It does not authenticate `curl` downloads from GitHub Releases. For a private/internal repository or release asset, set `STASHIELD_DOWNLOAD_TOKEN` as a hidden egg variable.
 
+When `STASHIELD_DOWNLOAD_TOKEN` is set, startup uses the GitHub REST API to find the `STAShield.jar` release asset and downloads it with `Accept: application/octet-stream`. This avoids the private-release `browser_download_url` returning `404`.
+
 ### Jar download 404
 
 If startup logs:
